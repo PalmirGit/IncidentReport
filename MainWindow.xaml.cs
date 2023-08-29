@@ -4,6 +4,7 @@ using System.Data.SqlClient;
 using System.Linq;
 using System.Reflection.PortableExecutable;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -93,28 +94,39 @@ namespace IncidentReport
             if (TextBoxFilter.Text != "")
             {
                 Boolean foundRecord = false;
+                DisplayEmptyIncident();
+                ListBoxIncidents.Items.Clear();
+                ListBoxIncidents.Items.Add(incidentList[0].IncidentPrintHeader());
+                TextBoxTotalCost.Text = string.Empty;
+                List<Incident> tempList = new List<Incident>();
 
-                for (int i = 0; i < incidentList.Count; i++)
+                try
                 {
-                    //Seaching Project Name from the downloaded records. Therefore, LoadDatabase("") first is mandatory.
-                    if (incidentList[i].GetProjectName() == TextBoxFilter.Text && foundRecord == false)
+                    Regex searchPattern = new Regex(TextBoxFilter.Text, RegexOptions.IgnoreCase);   //RegexOptions.IgnoreCase flag enables case-insensitive matching.
+
+                    foreach (Incident incident in incidentList)
                     {
-                        foundRecord = true;
+                        if (searchPattern.IsMatch(incident.GetProjectName()))
+                        {
+                            tempList.Add(incident);
+                            ListBoxIncidents.Items.Add(incident);
+                            foundRecord = true;
+                        }
+                    }
+
+                    if (foundRecord)
+                    {
+                        incidentList = tempList;
+                        DisplayTotalCost();
                     }
                 }
-
-                if (foundRecord)
+                catch (ArgumentException argEx)
                 {
-                    projectNameFilter = TextBoxFilter.Text;                                         //Pass a valid Project Name to be filtered in a database query.
-                    LoadDatabase(projectNameFilter);
+                    TextBoxErrorMessage.Text = "Invalid regular expression pattern: " + argEx.Message;
                 }
-                else
+                catch (Exception ex)
                 {
-                    DisplayEmptyIncident();
-                    ListBoxIncidents.Items.Clear();
-                    ListBoxIncidents.Items.Add("No matching record!");
-                    TextBoxErrorMessage.Text = "No Project Name matchs the input filter.";
-                    TextBoxTotalCost.Text = string.Empty;
+                    TextBoxErrorMessage.Text = "An error occurred: " + ex.Message;
                 }
             }
         }
