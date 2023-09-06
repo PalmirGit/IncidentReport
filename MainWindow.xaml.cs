@@ -94,6 +94,9 @@ namespace IncidentReport
             if (TextBoxFilter.Text != "")
             {
                 Boolean foundRecord = false;
+                char delimiter = ' ';
+                string[] searchList = TextBoxFilter.Text.Split(new[] { delimiter }, StringSplitOptions.RemoveEmptyEntries);
+
                 DisplayEmptyIncident();
                 ListBoxIncidents.Items.Clear();
                 ListBoxIncidents.Items.Add(incidentList[0].IncidentPrintHeader());
@@ -102,11 +105,10 @@ namespace IncidentReport
 
                 try
                 {
-                    Regex searchPattern = new Regex(TextBoxFilter.Text, RegexOptions.IgnoreCase);   //RegexOptions.IgnoreCase flag enables case-insensitive matching.
-
                     foreach (Incident incident in incidentList)
                     {
-                        if (searchPattern.IsMatch(incident.GetProjectName()))
+                        //if (searchList.All(word => incident.GetProjectName().Contains(word, StringComparison.OrdinalIgnoreCase)))
+                        if (searchList.Any(word => incident.GetProjectName().Contains(word, StringComparison.OrdinalIgnoreCase)))
                         {
                             tempList.Add(incident);
                             ListBoxIncidents.Items.Add(incident);
