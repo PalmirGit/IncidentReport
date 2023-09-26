@@ -22,7 +22,7 @@
         <TextBox x:Name="TextBoxIncidentCost" HorizontalAlignment="Left" Margin="170,425,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="400" Grid.Row="1"/>
         <TextBox x:Name="TextBoxIncidentDescription" HorizontalAlignment="Left" Margin="170,450,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="400" Grid.Row="1"/>
         <Button x:Name="ButtonApplyFilter" Content="Apply Filter" HorizontalAlignment="Left" Margin="350,19,0,0" VerticalAlignment="Top" Width="100" Click="ButtonApplyFilter_Click"/>
-        <Button x:Name="ButtonSave" Content="Save" HorizontalAlignment="Left" Margin="580,293,0,0" VerticalAlignment="Top" Width="100" Grid.Row="1" Height="20" Click="ButtonSave_Click"/>
+        <Button x:Name="ButtonUpdate" Content="Update" HorizontalAlignment="Left" Margin="580,293,0,0" VerticalAlignment="Top" Width="100" Grid.Row="1" Height="20" Click="ButtonUpdate_Click"/>
         <Button x:Name="ButtonDelete" Content="Delete" HorizontalAlignment="Left" Margin="700,293,0,0" VerticalAlignment="Top" Width="100" Grid.Row="1" Height="20" Click="ButtonDelete_Click"/>
         <Button x:Name="ButtonSaveNew" Content="Save New" HorizontalAlignment="Left" Margin="820,293,0,0" VerticalAlignment="Top" Width="100" Grid.Row="1" Click="ButtonSaveNew_Click"/>
         <ListBox x:Name="ListBoxIncidents" HorizontalAlignment="Left" Height="250" Margin="15,25,0,0" VerticalAlignment="Top" Width="1140" d:ItemsSource="{d:SampleData ItemCount=10}" Grid.Row="1" SelectionChanged="ListBoxIncidents_SelectionChanged"/>

@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace IncidentReport
 {
-    class Incident
+    public class Incident
     {
         private int incidentID;
         private DateTime incidentDate;

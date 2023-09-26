@@ -23,7 +23,6 @@ namespace IncidentReport
         private List<Incident> incidentList = new List<Incident>();
         private Incident currentIncident = new Incident();
         private int currentIndex;
-        private string projectNameFilter = "";
 
         /******* IMPORTANT *****
          * Tutorial videos indicate that relative path of SQL Connection String can not be used.
@@ -38,7 +37,7 @@ namespace IncidentReport
             InitializeComponent();
 
             //Initial the application by connecting to the database then download to show all records.
-            LoadDatabase("");
+            LoadDatabase();
         }
 
         private void ListBoxIncidents_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -89,7 +88,7 @@ namespace IncidentReport
         {
             TextBoxErrorMessage.Text = "";                                                          //Clear error messages.
 
-            LoadDatabase("");                                                                       //Always load all database before matching with the filter.
+            LoadDatabase();                                                                       //Always load all database before matching with the filter.
 
             if (TextBoxFilter.Text != "")
             {
@@ -133,58 +132,18 @@ namespace IncidentReport
             }
         }
 
-        private void LoadDatabase(string loadOption)                                                //Bioption database loader.
+        private void LoadDatabase()
         {
-            incidentList.Clear();
+            incidentList = DataService.ReadIncident(sqlConnectionString);
+
             ListBoxIncidents.Items.Clear();
-            string sqlQuery;
+            ListBoxIncidents.Items.Add(incidentList[0].IncidentPrintHeader());
 
-            /**
-              * 4 Steps of Database Connection Layers:
-              * 1. Allocate, configure, and open your connection object.
-              * 2. Allocate and configure a command object, specifying the connection object as a constructor argument or with the Connection property.
-              * 3. Call ExecuteReader() on the configured command class.
-              * 4. Process each record using the Read() method of the data reader.
-              */
-            using (SqlConnection connection = new SqlConnection(sqlConnectionString))               //Step 1. Using "using" for a temporary object; to be cleared out after finish.
+            foreach (Incident incident in incidentList)
             {
-                connection.Open();
-
-                if (loadOption != "")
-                {
-                    sqlQuery = $"SELECT * FROM Incidents WHERE ProjectName = '{loadOption}';";      // 1st Option: download records with a Project Name filter.
-                }
-                else
-                {
-                    sqlQuery = "SELECT * FROM Incidents;";                                          // 2nd Option: download all records.
-                }
-
-                using (SqlCommand command = new SqlCommand(sqlQuery, connection))                   //Step 2.
-                {
-                    using (SqlDataReader reader = command.ExecuteReader())                          //Step 3.
-                    {
-                        Incident newIncident = new Incident();
-                        ListBoxIncidents.Items.Add(newIncident.IncidentPrintHeader());
-
-                        while (reader.Read())                                                       //Step 4.
-                        {
-                            newIncident = new Incident((int)reader["IncidentId"],
-                                                       (DateTime)reader["IncidentDate"],
-                                                       (string)reader["ProjectName"],
-                                                       (string)reader["VendorCompanyName"],
-                                                       (string)reader["VendorContactName"],
-                                                       (string)reader["VendorContactEmail"],
-                                                       (decimal)reader["IncidentCost"],
-                                                       (string)reader["IncidentDescription"]);
-                            
-                            incidentList.Add(newIncident);
-                            ListBoxIncidents.Items.Add(newIncident);
-                        }
-                    }
-                }
-
-                connection.Close();
+                ListBoxIncidents.Items.Add(incident);
             }
+
             DisplayTotalCost();
         }
 
@@ -193,7 +152,7 @@ namespace IncidentReport
             decimal totalCost = 0;
 
             //Sum the total cost with the current records in the downloaded list only.
-            for (int i=0; i<incidentList.Count; i++)
+            for (int i = 0; i < incidentList.Count; i++)
             {
                 totalCost += incidentList[i].GetIncidentCost();
             }
@@ -201,36 +160,16 @@ namespace IncidentReport
             TextBoxTotalCost.Text = $"{totalCost,0:C2}";
         }
 
-        private void ButtonSave_Click(object sender, RoutedEventArgs e)
+        private void ButtonUpdate_Click(object sender, RoutedEventArgs e)
         {
             bool validInput = false;
             validInput = ValidateInputFromTextBoxes(currentIncident);                               //Input validation from the text boxes.
 
             if (validInput)
             {
-                using (SqlConnection connection = new SqlConnection(sqlConnectionString))
-                {
-                    connection.Open();
+                DataService.UpdateIncident(sqlConnectionString, currentIncident);
 
-                    string sqlQuery = $"UPDATE Incidents SET " +
-                                      $"IncidentDate = '{currentIncident.GetIncidentDate()}', " +
-                                      $"ProjectName = '{currentIncident.GetProjectName()}', " +
-                                      $"VendorCompanyName = '{currentIncident.GetVendorCompanyName()}', " +
-                                      $"VendorContactName = '{currentIncident.GetVendorContactName()}', " +
-                                      $"VendorContactEmail = '{currentIncident.GetVendorContactEmail()}', " +
-                                      $"IncidentCost = '{currentIncident.GetIncidentCost()}', " +
-                                      $"IncidentDescription = '{currentIncident.GetIncidentDescription()}' " +
-                                      $"WHERE IncidentId = {currentIncident.GetIncidentId()};";     //Update to the specific primary key number.
-
-                    using (SqlCommand Command = new SqlCommand(sqlQuery, connection))
-                    {
-                        Command.ExecuteNonQuery();                                                  //"Update" command execution statement.
-                    }
-
-                    connection.Close();
-                }
-
-                LoadDatabase(projectNameFilter);
+                LoadDatabase();                                                                     //Reflesh the data
             }
         }
 
@@ -241,43 +180,9 @@ namespace IncidentReport
 
             if (validInput)
             {
-                using (SqlConnection connection = new SqlConnection(sqlConnectionString))
-                {
-                    connection.Open();
+                DataService.CreateIncident(sqlConnectionString, currentIncident);
 
-                    /* First query : find the maximum number of the primary key */
-                    string sqlQuery = "SELECT Max(IncidentId) FROM Incidents;";
-
-                    using (SqlCommand command = new SqlCommand(sqlQuery, connection))
-                    {
-                        //"Select" command execution returns a first column first row value from the query which is Max(IncidentId);
-                        int newIncidentId = (int)command.ExecuteScalar() + 1;                       //Add 1 for increasing the database by 1 record.
-
-                        currentIncident.SetIncidentId(newIncidentId);                               //Complete an object for INSERT command below.
-                    }
-
-                    /* Second query : insert new data to a new number of the primary key */
-                    sqlQuery = $"INSERT INTO Incidents " +
-                               "(IncidentId, IncidentDate, ProjectName, VendorCompanyName, VendorContactName, VendorContactEmail, IncidentCost, IncidentDescription)" +
-                               "VALUES (" +
-                               $"{currentIncident.GetIncidentId()}, " +
-                               $"'{currentIncident.GetIncidentDate()}', " +
-                               $"'{currentIncident.GetProjectName()}', " +
-                               $"'{currentIncident.GetVendorCompanyName()}', " +
-                               $"'{currentIncident.GetVendorContactName()}', " +
-                               $"'{currentIncident.GetVendorContactEmail()}', " +
-                               $"'{currentIncident.GetIncidentCost()}', " +
-                               $"'{currentIncident.GetIncidentDescription()}');";
-
-                    using (SqlCommand command = new SqlCommand(sqlQuery, connection))
-                    {
-                        command.ExecuteNonQuery();                                                  //"Insert" command execution statement.
-                    }
-
-                    connection.Close();
-                }
-
-                LoadDatabase(projectNameFilter);
+                LoadDatabase();
                 DisplayIncidentToTextBoxes();
             }
         }
@@ -286,22 +191,10 @@ namespace IncidentReport
         {
             if(currentIncident != null)
             {
-                using (SqlConnection connection = new SqlConnection(sqlConnectionString))
-                {
-                    connection.Open();
+                DataService.DeleteIncident(sqlConnectionString, currentIncident);
 
-                    string sqlQuery = $"DELETE FROM Incidents WHERE IncidentId = {currentIncident.GetIncidentId()};";   //Delete at a specific primary key number.
+                LoadDatabase();                                                                     //Reflesh the data
 
-                    using (SqlCommand command = new SqlCommand(sqlQuery, connection))
-                    {
-                        command.ExecuteNonQuery();                                                  //"Delete" command execution statement.
-                    }
-
-                    connection.Close();
-                }
-
-                LoadDatabase(projectNameFilter);
-                
                 //Clear all the text boxes and the current incident for not allowing continuously deleting records.
                 DisplayEmptyIncident();
             }
@@ -311,10 +204,8 @@ namespace IncidentReport
         {
             if(TextBoxFilter.Text == "")
             {
-                //Refresh the list box by re-download all the record from the database. This helps user to know Project Names for the next filtering.
-                projectNameFilter = "";
-                LoadDatabase(projectNameFilter);
-                
+                LoadDatabase();                                                                     //Reflesh the data
+
                 TextBoxErrorMessage.Text = "";
             }
         }
